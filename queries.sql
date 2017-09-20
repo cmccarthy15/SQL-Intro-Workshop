@@ -204,6 +204,16 @@ COMMENT --> join that with movies to get actor names, movie names
 
 /* REVIEW SOLUTION */
 /* Will need actors, movies, movies_genres, roles */
+/* DOES NOT WORK YET  */
+
+CREATE VIEW bacon AS
+  SELECT m2.id
+  FROM movies AS m2
+    INNER JOIN roles AS r2 ON r2.movie_id = m2.id
+    INNER JOIN actors AS a2
+      ON r2.actor_id = a2.id
+      AND a2.first_name = 'Kevin'
+      AND a2.last_name = 'Bacon'
 
 SELECT m.name, a.first_name || " " || a.last_name AS full_name
 FROM actors as a
@@ -214,15 +224,7 @@ FROM actors as a
   INNER JOIN movies_genres as mg
     ON mg.movie_id = m.id
     AND mg.genre = 'Drama';
-WHERE m.id IN (
-  SELECT m2.id
-  FROM movies AS m2
-    INNER JOIN roles AS r2 ON r2.movie_id = m2.id
-    INNER JOIN actors AS a2
-      ON r2.actor_id = a2.id
-      AND a2.first_name = 'Kevin'
-      AND a2.last_name = 'Bacon'
-)
+WHERE m.id IN bacon
 AND full_name != 'Kevin Bacon'
 ORDER BY a.last_name ASC
 LIMIT 100;
@@ -289,7 +291,20 @@ Find actors that played five or more roles in the same movie after the year 1990
 /* Will need actors, roles, movies */
 
 
-
+SELECT
+  actors.first_name,
+  actors.last_name,
+  movies.name,
+  movies.year,
+  COUNT (DISTINCT roles.role) AS num_roles_in_movies
+FROM actors
+INNER JOIN roles
+  ON roles.actor_id = actors.id
+INNER JOIN movies
+  ON roles.movie_id = movies.id
+WHERE movies.year > 1990
+GROUP BY actors.id, movies.id
+HAVING num_roles_in_movies > 4;
 
 
 
@@ -311,3 +326,19 @@ For each year, count the number of movies in that year that had only female acto
 /* REVIEW SOLUTION */
 
 /* Will need   */
+SELECT movies.year, COUNT(*) movies_in_year
+FROM movies
+WHERE movies.id NOT IN (
+  SELECT DISTINCT movies.id
+  FROM movies
+    INNER JOIN roles ON movies.id = roles.movie_id
+    INNER JOIN actors
+      ON roles.actor_id = actors.id
+      AND actors.gender = 'M'
+);
+
+GROUP BY movies.year;
+
+SELECT DISTINCT movies.id
+FROM movies
+  INNER JOIN ROLES
