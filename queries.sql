@@ -1,35 +1,58 @@
 Birthyear:
 
-SELECT name,year FROM movies WHERE year=1992
+SELECT name, year
+FROM movies
+WHERE year = 1992;
 
 1982:
 
 
-SELECT COUNT(*) FROM movies WHERE year=1982
+SELECT COUNT(*)
+FROM movies
+WHERE year = 1982;
 
 Stacktors:
 
-SELECT * FROM actors WHERE last_name LIKE '%stack%'
+SELECT *
+FROM actors
+WHERE last_name
+LIKE '%stack%';
 
-SELECT first_name, COUNT(*) FROM actors WHERE COUNT(*) > 50 GROUP BY first_name ORDER BY COUNT(*) DESC;
+...?
+SELECT first_name, COUNT(*)
+FROM actors
+WHERE COUNT(*) > 50
+GROUP BY first_name
+ORDER BY COUNT(*) DESC;
 
 
 Fake Name Game:
 
-SELECT first_name, count
-FROM (SELECT first_name, COUNT(*) AS 'count'
-      FROM actors
-      GROUP BY first_name)
+SELECT first_name, COUNT(*) count
+FROM actors
+GROUP BY first_name
 ORDER BY count DESC
 LIMIT 10;
 
-SELECT last_name, COUNT(*) AS 'count' FROM actors GROUP BY last_name ORDER BY count DESC LIMIT 10;
+SELECT last_name, COUNT(*) AS 'count'
+FROM actors
+GROUP BY last_name
+ORDER BY count DESC
+DESC LIMIT 10;
 
 
-SELECT first_name, last_name, COUNT(*) AS 'count' FROM actors GROUP BY first_name, last_name ORDER BY count DESC LIMIT 10;
+SELECT first_name, last_name, COUNT(*) AS 'count'
+FROM actors
+GROUP BY first_name, last_name
+ORDER BY count DESC
+LIMIT 10;
 
 
-SELECT (first_name || ' ' || last_name) as full_name COUNT(*) AS 'count' FROM actors GROUP BY first_name, last_name ORDER BY count DESC LIMIT 10;
+SELECT (first_name || ' ' || last_name) as full_name, COUNT(*) AS 'count'
+FROM actors
+GROUP BY full_name
+ORDER BY count DESC
+LIMIT 10;
 
 
 Prolific:
@@ -37,7 +60,14 @@ Involve (inner?) joining the roles and actors tables where actors.id = roles.act
 counting stuff like above
 selecting the 100 actors with the greatest count from that
 
-SELECT a.first_name, a.last_name, COUNT(*) AS count FROM actors AS a JOIN roles AS r ON a.id = r.actor_id GROUP BY a.first_name, a.last_name ORDER BY count DESC LIMIT 100;
+
+SELECT first_name, last_name, COUNT(*) AS num_roles
+FROM actors AS a
+JOIN roles AS r
+ON a.id = r.actor_id
+GROUP BY a.id
+ORDER BY num_roles DESC
+LIMIT 100;
 
 
 Bottom of the Barrel:
@@ -45,7 +75,12 @@ How many movies does IMDB have of each genre, ordered by least popular genre?
 still display at the end genre and num of movies that are in that genre
 join with movies in order to make sure there are legit movies
 
-SELECT genre, COUNT(*) AS count FROM movies_genres as g JOIN movies as m ON g.movie_id = m.id GROUP BY genre ORDER BY count;
+SELECT genre, COUNT(*) AS num_movies
+FROM movies_genres as g
+JOIN movies as m
+ON g.movie_id = m.id
+GROUP BY genre
+ORDER BY num_movies;
 
 
 Braveheart:
@@ -58,9 +93,26 @@ to get all the actors from braveheart...
   and then select first and last names and order by last name
 
 
-SELECT first_name, last_name FROM actors JOIN (
-  SELECT b.id as movieID, r.actor_id as actID FROM ( SELECT * FROM movies WHERE name = 'Braveheart' and year = 1995) as b JOIN roles as r ON b.id = r.movie_id
-) as bans ON bans.actID = actors.id ORDER BY last_name;
+/* SELECT first_name, last_name
+FROM actors
+JOIN ( SELECT b.id as movieID, r.actor_id as actID
+      FROM ( SELECT *
+            FROM movies
+            WHERE name = 'Braveheart' and year = 1995) as b
+      JOIN roles as r
+      ON b.id = r.movie_id) as bans
+ON bans.actID = actors.id
+ORDER BY last_name;
+*/
+
+SELECT first_name, last_name
+FROM actors
+  INNER JOIN roles ON actors.id = roles.actor_id
+  INNER JOIN movies
+    ON roles.movie_id = movies.id
+    AND movies.name = 'Braveheart'
+    AND movies.year = 1995
+ORDER BY last_name;
 
 
 Leap Noir:
@@ -91,6 +143,22 @@ JOIN (SELECT md.movie_id, d.first_name, d.last_name
       ON md.director_id = d.id ) as d
 ON fnm.id = d.movie_id
 ORDER BY fnm.name;
+
+/* REVIEW SOLUTION */
+/* need directors, movies_directors, movies_genres, and movies tables */
+
+SELECT first_name, last_name, m.name, m.year
+FROM movies as m
+  INNER JOIN movies_genres as mg
+  ON m.id = mg.movie_id
+  AND mg.genre = 'Film-Noir'
+    INNER JOIN movies_directors as md
+    ON m.id = md.movie_id
+      INNER JOIN directors as d
+      ON md.director_id = d.id
+WHERE year % 4 = 0
+ORDER BY m.name;
+
 
 
 *Bacon:
@@ -134,10 +202,30 @@ COMMENT --> join that with actors to get a table with actor names, actorIds, mov
 COMMENT --> join that with movies to get actor names, movie names
 
 
+/* REVIEW SOLUTION */
+/* Will need actors, movies, movies_genres, roles */
 
-
-
-
+SELECT m.name, a.first_name || " " || a.last_name AS full_name
+FROM actors as a
+  INNER JOIN roles as r
+    ON r.actor_id = a.id
+  INNER JOIN movies as m
+    ON r.movie_id = m.id
+  INNER JOIN movies_genres as mg
+    ON mg.movie_id = m.id
+    AND mg.genre = 'Drama';
+WHERE m.id IN (
+  SELECT m2.id
+  FROM movies AS m2
+    INNER JOIN roles AS r2 ON r2.movie_id = m2.id
+    INNER JOIN actors AS a2
+      ON r2.actor_id = a2.id
+      AND a2.first_name = 'Kevin'
+      AND a2.last_name = 'Bacon'
+)
+AND full_name != 'Kevin Bacon'
+ORDER BY a.last_name ASC
+LIMIT 100;
 
 
 
@@ -172,12 +260,21 @@ ON act.id = actor_id
 ORDER BY act.id DESC
 LIMIT 100;
 
-get all movies after 2000 and their actor ids   then actor names and ids
-join those two where actorIDs and include  their actor IDs and count (groupby)
-join that with actors and select their names
+/* REVIEW SOLUTION */
 
+/* Will need actors, roles, movies */
 
-
+SELECT actors.id, actors.first_name, actors.last_name
+FROM actors
+  INNER JOIN roles ON roles.actor_id = actors.id
+  INNER JOIN movies ON movies.id = roles.movie_id
+WHERE movies.year < 1900
+INTERSECT
+SELECT actors.id, actors.first_name, actors.last_name
+FROM actors
+  INNER JOIN roles ON roles.actor_id = actors.id
+  INNER JOIN movies ON movies.id = roles.movie_id
+WHERE movies.year > 2000;
 
 
 
@@ -187,3 +284,30 @@ join that with actors and select their names
 Busy Filming:
 Find actors that played five or more roles in the same movie after the year 1990. Notice that ROLES may have occasional duplicates, but we are not interested in these: we want actors that had five or more distinct (cough cough) roles in the same movie. Write a query that returns the actors names, the movie name, and the number of distinct roles that they played in that movie (which will be ≥ 5).
 
+/* REVIEW SOLUTION */
+
+/* Will need actors, roles, movies */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+♀ :
+
+For each year, count the number of movies in that year that had only female actors. You might start by including movies with no cast, but your ultimate goal is to narrow your query to only movies that have a cast.
+
+
+/* REVIEW SOLUTION */
+
+/* Will need   */
